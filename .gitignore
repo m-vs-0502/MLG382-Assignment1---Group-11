@@ -1,0 +1,15 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# Environments
+venv/
+env/
+
+# Data and Artifacts (Don't track these if they change often)
+data/*.csv
+artifacts/*.pkl
+
+# OS files
+.DS_Store
+Thumbs.db
