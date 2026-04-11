@@ -1,0 +1,1 @@
+This project uses machine learning modeling to predict diabetes stages in patients based on 30 different factors. This is done through polynomial distrobution. ------------WORK IN PROGRESS
