@@ -6,10 +6,20 @@ __pycache__/
 venv/
 env/
 
-# Data and Artifacts (Don't track these if they change often)
+# Data and Artifacts 
 data/*.csv
 artifacts/*.pkl
 
 # OS files
 .DS_Store
 Thumbs.db
+
+# Jupyter Notebook checkpoints 
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+# IDE Specific (Prevents team members' editor settings from clashing)
+.vscode/
+.idea/
+*.swp
+*.swo
