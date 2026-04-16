@@ -279,6 +279,15 @@ def update_prediction(n_clicks, *values):
 
 def get_interpretation(risk_label, cluster_label, confidence):
     """Generate human-readable interpretation."""
+    
+    # Type 1 and Gestational have the same interpretation regardless of cluster
+    if risk_label == 'Type 1':
+        return "Type 1 diabetes is an autoimmune condition requiring insulin therapy. Consult an endocrinologist for proper management."
+    
+    if risk_label == 'Gestational':
+        return "Gestational diabetes requires careful monitoring during pregnancy. Consult your obstetrician for appropriate care and glucose management."
+    
+    # For No Diabetes, Pre-Diabetes, and Type 2 - cluster matters
     interpretations = {
         ('No Diabetes', 'Low Risk'): "Patient shows no signs of diabetes and has healthy lifestyle indicators. Recommend maintaining current habits with regular check-ups.",
         ('No Diabetes', 'Moderate Risk'): "No diabetes detected, but lifestyle factors suggest moderate risk. Consider increasing physical activity and monitoring diet.",
@@ -288,19 +297,16 @@ def get_interpretation(risk_label, cluster_label, confidence):
         ('Pre-Diabetes', 'High Risk'): "Pre-diabetes with high-risk lifestyle. Urgent lifestyle intervention recommended to prevent progression.",
         ('Type 2', 'Low Risk'): "Type 2 diabetes with well-managed lifestyle factors. Continue current management and regular monitoring.",
         ('Type 2', 'Moderate Risk'): "Type 2 diabetes with room for lifestyle improvement. Focus on diet, exercise, and medication adherence.",
-        ('Type 2', 'High Risk'): "Type 2 diabetes with high-risk profile. Immediate lifestyle changes and medical consultation strongly advised.",
-        ('Type 1', _): "Type 1 diabetes is an autoimmune condition requiring insulin therapy. Consult endocrinologist for management.",
-        ('Gestational', _): "Gestational diabetes requires monitoring during pregnancy. Consult obstetrician for appropriate care."
+        ('Type 2', 'High Risk'): "Type 2 diabetes with high-risk profile. Immediate lifestyle changes and medical consultation strongly advised."
     }
     
-    # Check for specific combination first
+    # Try to get specific interpretation
     key = (risk_label, cluster_label)
     if key in interpretations:
         return interpretations[key]
     
-    # Fallback
+    # Fallback for any unhandled combinations
     return f"Based on the model, this patient is classified as '{risk_label}' with a '{cluster_label}' lifestyle profile. Clinical correlation is recommended."
-
 
 # ============================================================================
 # 6. RUN THE APP
