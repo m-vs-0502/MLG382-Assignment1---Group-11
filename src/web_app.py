@@ -1,11 +1,5 @@
-import os
-import dash
-from dash import dcc, html, Input, Output, State
-import pandas as pd
-import numpy as np
-import joblib
-import pickle
 
+<<<<<<< HEAD
 # ----------------------------------------------------------------------------
 # LOAD ARTIFACTS
 # ----------------------------------------------------------------------------
@@ -475,3 +469,5 @@ def update_prediction(n_clicks, *values):
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 10000))
     app.run_server(host='0.0.0.0', port=port, debug=False)
+=======
+>>>>>>> 11e313969956056d591aecc7b925abfe8d98190a
