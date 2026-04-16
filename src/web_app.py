@@ -69,12 +69,17 @@ INPUT_GROUPS = [
         'fields': [
             {'id': 'Age', 'label': 'Age (years)', 'type': 'number',
              'min': 18, 'max': 100, 'step': 1, 'default': 50},
+<<<<<<< HEAD
             {'id': 'gender', 'label': 'Gender', 'type': 'radio',
              'options': [
                  {'label': 'Male', 'value': 'Male'},
                  {'label': 'Female', 'value': 'Female'},
              ],
              'default': 'Female'},
+=======
+            {'id': 'gender', 'label': 'Gender', 'type': 'checkbox', 'default': False,
+             'checkbox_label': 'Male (unchecked = Female)'},
+>>>>>>> 8dd8ab78dfeb7425af63d80ed108565226696e15
             {'id': 'family_history_diabetes', 'label': 'Family History', 'type': 'checkbox', 'default': False,
              'checkbox_label': 'Family history of diabetes'},
         ]
@@ -125,6 +130,10 @@ VALIDATION_RULES = {
 # ----------------------------------------------------------------------------
 
 def income_to_features(value):
+<<<<<<< HEAD
+=======
+    """Convert income dropdown to one-hot encoded features."""
+>>>>>>> 8dd8ab78dfeb7425af63d80ed108565226696e15
     features = {
         'income_level_Low': 0,
         'income_level_Lower-Middle': 0,
@@ -145,6 +154,10 @@ def income_to_features(value):
 
 
 def prepare_input_vector(form_data):
+<<<<<<< HEAD
+=======
+    """Convert form data to complete 39-feature vector."""
+>>>>>>> 8dd8ab78dfeb7425af63d80ed108565226696e15
     input_data = FEATURE_MEANS.copy()
     
     for key, value in form_data.items():
@@ -152,7 +165,11 @@ def prepare_input_vector(form_data):
             se_features = income_to_features(value)
             input_data.update(se_features)
         elif key == 'gender':
+<<<<<<< HEAD
             input_data['gender'] = 1 if value == 'Male' else 0
+=======
+            input_data['gender'] = 1 if value else 0
+>>>>>>> 8dd8ab78dfeb7425af63d80ed108565226696e15
         elif key == 'family_history_diabetes':
             input_data['family_history_diabetes'] = 1 if value else 0
         elif key in FEATURE_COLUMNS:
@@ -162,6 +179,10 @@ def prepare_input_vector(form_data):
 
 
 def validate_inputs(form_data):
+<<<<<<< HEAD
+=======
+    """Validate all numeric inputs."""
+>>>>>>> 8dd8ab78dfeb7425af63d80ed108565226696e15
     errors = []
     for field, rules in VALIDATION_RULES.items():
         if field in form_data and form_data[field] is not None:
@@ -172,6 +193,10 @@ def validate_inputs(form_data):
 
 
 def predict_risk(form_data):
+<<<<<<< HEAD
+=======
+    """Make prediction and return results."""
+>>>>>>> 8dd8ab78dfeb7425af63d80ed108565226696e15
     input_df = prepare_input_vector(form_data)
     
     input_scaled = input_df.copy()
@@ -194,6 +219,7 @@ def predict_risk(form_data):
     return risk_label, cluster_label, class_probas
 
 
+<<<<<<< HEAD
 def get_interpretation(risk_label, cluster_label):
     if risk_label == 'Type 1':
         return "Type 1 diabetes is an autoimmune condition requiring insulin therapy. Consult an endocrinologist for proper management."
@@ -220,6 +246,8 @@ def get_interpretation(risk_label, cluster_label):
     return f"Based on the model, this patient is classified as '{risk_label}' with a '{cluster_label}' lifestyle profile. Clinical correlation is recommended."
 
 
+=======
+>>>>>>> 8dd8ab78dfeb7425af63d80ed108565226696e15
 # ----------------------------------------------------------------------------
 # DASH APP LAYOUT
 # ----------------------------------------------------------------------------
@@ -255,6 +283,7 @@ for group in INPUT_GROUPS:
                     style={'marginBottom': '10px'}
                 )
             ]))
+<<<<<<< HEAD
         elif field['type'] == 'radio':
             fields.append(html.Div([
                 html.Label(field['label'], style={'fontWeight': 'bold', 'marginTop': 10}),
@@ -265,6 +294,8 @@ for group in INPUT_GROUPS:
                     style={'marginBottom': '10px'}
                 )
             ]))
+=======
+>>>>>>> 8dd8ab78dfeb7425af63d80ed108565226696e15
         elif field['type'] == 'dropdown':
             fields.append(html.Div([
                 html.Label(field['label'], style={'fontWeight': 'bold', 'marginTop': 10}),
@@ -345,7 +376,11 @@ def update_prediction(n_clicks, *values):
         field_id = input_id.replace('input-', '')
         value = values[i]
         
+<<<<<<< HEAD
         if field_id == 'family_history_diabetes':
+=======
+        if field_id in ['gender', 'family_history_diabetes']:
+>>>>>>> 8dd8ab78dfeb7425af63d80ed108565226696e15
             form_data[field_id] = bool(value) if isinstance(value, list) else bool([value] if value else [])
         else:
             form_data[field_id] = value
@@ -405,6 +440,7 @@ def update_prediction(n_clicks, *values):
                            'color': cluster_colors.get(cluster_label, '#2c3e50')}),
                 ], style={'flex': '1'}),
             ], style={'display': 'flex', 'justifyContent': 'space-around', 'marginBottom': 20}),
+<<<<<<< HEAD
             
             html.Hr(),
             
@@ -415,6 +451,13 @@ def update_prediction(n_clicks, *values):
             
             html.P("Interpretation:", style={'fontWeight': 'bold', 'marginTop': 20}),
             html.P(get_interpretation(risk_label, cluster_label), style={'color': '#555', 'lineHeight': '1.6'}),
+=======
+            
+            html.Hr(),
+            
+            html.P("Probability Distribution:", style={'fontWeight': 'bold', 'marginTop': 20}),
+            html.Div(proba_bars, style={'marginBottom': 20}),
+>>>>>>> 8dd8ab78dfeb7425af63d80ed108565226696e15
             
         ]), ""
         
