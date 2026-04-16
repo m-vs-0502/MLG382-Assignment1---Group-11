@@ -1,28 +1,25 @@
 import os
 import joblib
-import pandas as pd
 import numpy as np
 import dash
-from dash import dcc, html, Input, Output, State, ALL
+from dash import dcc, html, Input, Output, State
 
-# --- 1. Path Resolution ---
-# Script is in /project/src/, artifacts are in /project/artifacts/
+# --- 1. Load Artifacts ---
 current_dir = os.path.dirname(os.path.abspath(__file__))
 root_dir = os.path.dirname(current_dir)
 base_path = os.path.join(root_dir, 'artifacts')
 
-# --- 2. Load Artifacts ---
-try:
-    scaler = joblib.load(os.path.join(base_path, 'scaler.pkl'))
-    # Updated to your specific filenames
-    xgb_model = joblib.load(os.path.join(base_path, 'xgboost_model.pkl'))
-    kmeans_model = joblib.load(os.path.join(base_path, 'kmeans_model.pkl'))
-    load_status = "System Ready: All models and scaler loaded."
-except Exception as e:
-    load_status = f"System Error: {e}"
+scaler = joblib.load(os.path.join(base_path, 'scaler.pkl'))
+xgb_model = joblib.load(os.path.join(base_path, 'xgboost_model.pkl'))
+kmeans_model = joblib.load(os.path.join(base_path, 'kmeans_model.pkl'))
 
-# --- 3. Feature Definitions ---
-feature_names = [
+# --- 2. Configuration ---
+DASHBOARD_FEATURES = [
+    'hba1c', 'glucose_fasting', 'bmi', 'waist_to_hip_ratio', 'diet_score',
+    'Age', 'cholesterol_total', 'systolic_bp', 'triglycerides', 'physical_activity_minutes_per_week'
+]
+
+KMEANS_FEATURES = [
     'Age', 'alcohol_consumption_per_week', 'physical_activity_minutes_per_week', 
     'diet_score', 'sleep_hours_per_day', 'screen_time_hours_per_day', 'bmi', 
     'waist_to_hip_ratio', 'systolic_bp', 'diastolic_bp', 'heart_rate', 
@@ -30,83 +27,74 @@ feature_names = [
     'glucose_fasting', 'glucose_postprandial', 'insulin_level', 'hba1c'
 ]
 
-# --- 4. Dash App ---
+XGB_FEATURES = [
+    'Age', 'gender', 'alcohol_consumption_per_week', 'physical_activity_minutes_per_week', 
+    'diet_score', 'sleep_hours_per_day', 'screen_time_hours_per_day', 'family_history_diabetes', 
+    'hypertension_history', 'cardiovascular_history', 'bmi', 'waist_to_hip_ratio', 
+    'systolic_bp', 'diastolic_bp', 'heart_rate', 'cholesterol_total', 'hdl_cholesterol', 
+    'ldl_cholesterol', 'triglycerides', 'glucose_fasting', 'glucose_postprandial', 
+    'insulin_level', 'hba1c', 'ethnicity_Black', 'ethnicity_Hispanic', 'ethnicity_Other', 
+    'ethnicity_White', 'education_level_Highschool', 'education_level_No formal', 
+    'education_level_Postgraduate', 'income_level_Low', 'income_level_Lower-Middle', 
+    'income_level_Middle', 'income_level_Upper-Middle', 'employment_status_Retired', 
+    'employment_status_Student', 'employment_status_Unemployed', 'smoking_status_Former', 
+    'smoking_status_Never'
+]
+
+MEANS = {
+    'Age': 50.145, 'gender': 0.477, 'alcohol_consumption_per_week': 2.009, 
+    'physical_activity_minutes_per_week': 119.048, 'diet_score': 5.989, 
+    'sleep_hours_per_day': 6.995, 'screen_time_hours_per_day': 5.993, 
+    'family_history_diabetes': 0.217, 'hypertension_history': 0.251, 
+    'cardiovascular_history': 0.079, 'bmi': 25.628, 'waist_to_hip_ratio': 0.856, 
+    'systolic_bp': 115.765, 'diastolic_bp': 75.228, 'heart_rate': 69.617, 
+    'cholesterol_total': 185.982, 'hdl_cholesterol': 54.047, 'ldl_cholesterol': 102.986, 
+    'triglycerides': 121.528, 'glucose_fasting': 111.066, 'glucose_postprandial': 159.942, 
+    'insulin_level': 9.052, 'hba1c': 6.518, 'ethnicity_Black': 0.179, 
+    'ethnicity_Hispanic': 0.201, 'ethnicity_Other': 0.051, 'ethnicity_White': 0.449, 
+    'education_level_Highschool': 0.448, 'education_level_No formal': 0.050, 
+    'education_level_Postgraduate': 0.149, 'income_level_Low': 0.147, 
+    'income_level_Lower-Middle': 0.251, 'income_level_Middle': 0.352, 
+    'income_level_Upper-Middle': 0.198, 'employment_status_Retired': 0.217, 
+    'employment_status_Student': 0.061, 'employment_status_Unemployed': 0.118, 
+    'smoking_status_Former': 0.200, 'smoking_status_Never': 0.598
+}
+
+# --- 3. App Setup ---
 app = dash.Dash(__name__)
 server = app.server
 
 app.layout = html.Div([
-    html.H1("Health Analysis Dashboard"),
-    html.P(load_status, style={'color': '#666', 'fontSize': '14px', 'marginBottom': '20px'}),
-    
-    # Dynamic Input Grid
+    html.H1("Diabetes Risk & Lifestyle Dashboard"),
     html.Div([
         html.Div([
-            html.Label(name.replace('_', ' ').title(), style={'fontWeight': 'bold', 'display': 'block'}),
-            dcc.Input(
-                id={'type': 'feature-input', 'index': i}, 
-                type='number', 
-                value=0,
-                style={'width': '100%', 'padding': '8px', 'borderRadius': '4px', 'border': '1px solid #ccc'}
-            )
-        ], style={'padding': '10px'}) for i, name in enumerate(feature_names)
-    ], style={
-        'display': 'grid', 
-        'gridTemplateColumns': 'repeat(auto-fit, minmax(220px, 1fr))', 
-        'gap': '15px',
-        'backgroundColor': '#f9f9f9',
-        'padding': '20px',
-        'borderRadius': '8px'
-    }),
-    
-    html.Button('Run Analysis', id='predict-btn', n_clicks=0, 
-                style={
-                    'marginTop': '20px', 'padding': '12px 30px', 'fontSize': '16px',
-                    'backgroundColor': '#28a745', 'color': 'white', 'border': 'none', 
-                    'borderRadius': '5px', 'cursor': 'pointer'
-                }),
-    
-    html.Hr(style={'marginTop': '30px'}),
-    html.Div(id='prediction-output', style={'marginTop': '20px'})
-], style={'maxWidth': '1100px', 'margin': '0 auto', 'padding': '40px', 'fontFamily': 'system-ui'})
+            html.Label(feat.replace('_', ' ').title()),
+            dcc.Input(id={'type': 'in', 'id': feat}, type='number', value=round(MEANS[feat], 2))
+        ], style={'margin': '10px'}) for feat in DASHBOARD_FEATURES
+    ], style={'display': 'grid', 'gridTemplateColumns': '1fr 1fr'}),
+    html.Button("Analyze", id="run-btn", n_clicks=0),
+    html.Div(id="results-out", style={'marginTop': '20px', 'fontSize': '20px'})
+])
 
-# --- 5. Prediction Callback ---
 @app.callback(
-    Output('prediction-output', 'children'),
-    Input('predict-btn', 'n_clicks'),
-    State({'type': 'feature-input', 'index': ALL}, 'value')
+    Output("results-out", "children"),
+    Input("run-btn", "n_clicks"),
+    [State({'type': 'in', 'id': feat}, "value") for feat in DASHBOARD_FEATURES]
 )
-def predict(n_clicks, values):
-    if n_clicks == 0:
-        return html.Div("Awaiting input for analysis...", style={'color': '#888'})
+def run_analysis(n, *values):
+    if n == 0: return ""
+    user_data = dict(zip(DASHBOARD_FEATURES, values))
     
-    try:
-        # Prepare data (Shape: 1, 19)
-        input_data = np.array([values])
-        
-        # 1. Scale inputs
-        scaled_data = scaler.transform(input_data)
-        
-        # 2. Get XGBoost Prediction
-        xgb_res = xgb_model.predict(scaled_data)[0]
-        
-        # 3. Get K-Means Cluster Assignment
-        cluster_res = kmeans_model.predict(scaled_data)[0]
-        
-        return html.Div([
-            html.Div([
-                html.H3("XGBoost Prediction Result"),
-                html.P(f"{xgb_res:.4f}", style={'fontSize': '24px', 'color': '#28a745', 'fontWeight': 'bold'})
-            ], style={'display': 'inline-block', 'width': '45%', 'verticalAlign': 'top'}),
-            
-            html.Div([
-                html.H3("K-Means Cluster Assignment"),
-                html.P(f"Cluster Group: {cluster_res}", style={'fontSize': '24px', 'color': '#007bff', 'fontWeight': 'bold'})
-            ], style={'display': 'inline-block', 'width': '45%', 'verticalAlign': 'top'})
-        ], style={'textAlign': 'center', 'padding': '20px', 'border': '1px solid #eee', 'borderRadius': '8px'})
-        
-    except Exception as e:
-        return html.Div(f"Analysis Error: {str(e)}", style={'color': '#dc3545', 'fontWeight': 'bold'})
+    # Path 1: K-Means (19 features, scaled)
+    km_input = [user_data.get(f, MEANS[f]) for f in KMEANS_FEATURES]
+    km_scaled = scaler.transform([km_input])
+    cluster = kmeans_model.predict(km_scaled)[0]
+    
+    # Path 2: XGBoost (39 features, unscaled)
+    xgb_input = [user_data.get(f, MEANS[f]) for f in XGB_FEATURES]
+    risk_pred = xgb_model.predict([xgb_input])[0]
+    
+    return f"Risk Prediction: {risk_pred} | Lifestyle Cluster: {cluster}"
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 10000))
-    app.run_server(host='0.0.0.0', port=port)
+    app.run_server(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)))
