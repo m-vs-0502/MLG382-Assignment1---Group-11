@@ -12,6 +12,7 @@ shap
 jupyter
 notebook
 ipykernel
+IPython
 matplotlib
 seaborn
 scipy
