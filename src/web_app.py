@@ -6,11 +6,24 @@ import plotly.graph_objects as go
 import os
 
 # --- 1. Load Artifacts ---
-# Using absolute paths to avoid 'File Not Found' errors in different environments
-base_path = os.path.join(os.getcwd(), 'artifacts')
-scaler = joblib.load(os.path.join(base_path, 'scaler.pkl'))
-xgb_model = joblib.load(os.path.join(base_path, 'xgb_model.pkl'))
-kmeans_model = joblib.load(os.path.join(base_path, 'kmeans_model.pkl'))
+# This looks for the directory where THIS file (web_app.py) is located
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+# This moves UP one level to the root, then DOWN into artifacts
+# This works whether you are on Windows, Linux, or Render
+base_path = os.path.join(current_dir, '..', 'artifacts')
+
+scaler_path = os.path.join(base_path, 'scaler.pkl')
+xgb_path = os.path.join(base_path, 'xgb_model.pkl')
+kmeans_path = os.path.join(base_path, 'kmeans_model.pkl')
+
+# Check if files exist before loading to help with debugging
+if not os.path.exists(scaler_path):
+    raise FileNotFoundError(f"Could not find scaler at: {scaler_path}")
+
+scaler = joblib.load(scaler_path)
+xgb_model = joblib.load(xgb_path)
+kmeans_model = joblib.load(kmeans_path)
 
 app = dash.Dash(__name__)
 
