@@ -5,29 +5,40 @@ import joblib
 import plotly.graph_objects as go
 import os
 
-# --- 1. Load Artifacts ---
-# This looks for the directory where THIS file (web_app.py) is located
+## --- 1. Load Artifacts ---
+import os
+import joblib
+
+# Determine the absolute path to the 'artifacts' folder
+# This logic checks if we are in 'src' or the 'root'
 current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
 
-# This moves UP one level to the root, then DOWN into artifacts
-# This works whether you are on Windows, Linux, or Render
-base_path = os.path.join(current_dir, '..', 'artifacts')
+# Define possible paths for the artifacts folder
+# 1. Look for artifacts in the parent directory (standard for src/web_app.py)
+# 2. Look for artifacts in the current directory (fallback)
+path_options = [
+    os.path.join(parent_dir, 'artifacts'),
+    os.path.join(os.getcwd(), 'artifacts'),
+    '/opt/render/project/src/artifacts' # Direct Render Root path
+]
 
-scaler_path = os.path.join(base_path, 'scaler.pkl')
-xgb_path = os.path.join(base_path, 'xgb_model.pkl')
-kmeans_path = os.path.join(base_path, 'kmeans_model.pkl')
+base_path = None
+for p in path_options:
+    if os.path.exists(p):
+        base_path = p
+        break
 
-# Check if files exist before loading to help with debugging
-if not os.path.exists(scaler_path):
-    raise FileNotFoundError(f"Could not find scaler at: {scaler_path}")
+if not base_path:
+    raise FileNotFoundError(f"Could not find 'artifacts' folder. Checked: {path_options}")
 
-scaler = joblib.load(scaler_path)
-xgb_model = joblib.load(xgb_path)
-kmeans_model = joblib.load(kmeans_path)
+scaler = joblib.load(os.path.join(base_path, 'scaler.pkl'))
+xgb_model = joblib.load(os.path.join(base_path, 'xgb_model.pkl'))
+kmeans_model = joblib.load(os.path.join(base_path, 'kmeans_model.pkl'))
 
 app = dash.Dash(__name__)
-
 server = app.server
+
 
 # --- 2. Helper Functions ---
 
