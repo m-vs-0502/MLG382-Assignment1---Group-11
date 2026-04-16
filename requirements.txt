@@ -1,6 +1,6 @@
-gunicorn
-dash
+dash==2.6.0
 pandas
+gunicorn
 joblib
 xgboost
 scikit-learn
