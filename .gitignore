@@ -6,9 +6,6 @@ __pycache__/
 venv/
 env/
 
-# Data and Artifacts 
-data/*.csv
-artifacts/*.pkl
 
 # OS files
 .DS_Store
