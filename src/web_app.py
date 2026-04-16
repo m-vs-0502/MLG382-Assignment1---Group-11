@@ -2,7 +2,11 @@ import os
 import joblib
 import numpy as np
 import dash
+import warnings
 from dash import dcc, html, Input, Output, State, ALL
+
+# Ignore version mismatch warnings
+warnings.filterwarnings("ignore", category=UserWarning, module="sklearn")
 
 # --- 1. Load Artifacts ---
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -14,14 +18,14 @@ xgb_model = joblib.load(os.path.join(base_path, 'xgboost_model.pkl'))
 kmeans_model = joblib.load(os.path.join(base_path, 'kmeans_model.pkl'))
 
 # --- 2. Configuration ---
-# 10 UI Inputs
+# 10 Dashboard Inputs
 DASHBOARD_FEATURES = [
     'hba1c', 'glucose_fasting', 'bmi', 'waist_to_hip_ratio', 'diet_score',
     'Age', 'cholesterol_total', 'systolic_bp', 'triglycerides', 'physical_activity_minutes_per_week'
 ]
 
-# XGBOOST EXPECTS 19 (Based on your subsetting logic)
-XGB_FEATURES = [
+# K-MEANS EXPECTS 19 (Health Metrics + Scaler)
+KMEANS_FEATURES = [
     'Age', 'alcohol_consumption_per_week', 'physical_activity_minutes_per_week', 
     'diet_score', 'sleep_hours_per_day', 'screen_time_hours_per_day', 'bmi', 
     'waist_to_hip_ratio', 'systolic_bp', 'diastolic_bp', 'heart_rate', 
@@ -29,8 +33,8 @@ XGB_FEATURES = [
     'glucose_fasting', 'glucose_postprandial', 'insulin_level', 'hba1c'
 ]
 
-# KMEANS EXPECTS 39 (Based on your encoding logic)
-KMEANS_FEATURES = [
+# XGBOOST EXPECTS 39 (Full Encoded Dataset)
+XGB_FEATURES = [
     'Age', 'gender', 'alcohol_consumption_per_week', 'physical_activity_minutes_per_week', 
     'diet_score', 'sleep_hours_per_day', 'screen_time_hours_per_day', 'family_history_diabetes', 
     'hypertension_history', 'cardiovascular_history', 'bmi', 'waist_to_hip_ratio', 
@@ -71,19 +75,15 @@ app.layout = html.Div([
     html.Div([
         html.H2("Diabetes Risk Diagnostic", style={'textAlign': 'center', 'color': '#2c3e50'}),
         html.Hr(),
-        
-        # Input Grid
         html.Div([
             html.Div([
                 html.Label(f.replace('_', ' ').title(), style={'fontWeight': 'bold'}),
-                dcc.Input(id={'type': 'input-field', 'index': f}, type='number', value=round(MEANS[f], 2), style={'width': '100%'})
+                dcc.Input(id={'type': 'in', 'index': f}, type='number', value=round(MEANS[f], 2), style={'width': '100%'})
             ], className="four columns", style={'padding': '10px', 'backgroundColor': '#f9f9f9', 'borderRadius': '5px', 'margin': '5px'}) 
             for f in DASHBOARD_FEATURES
         ], className="row"),
-
         html.Br(),
         html.Button('Run Analysis', id='submit-val', n_clicks=0, className="button-primary", style={'width': '100%'}),
-        
         html.Div(id='prediction-output', style={'padding': '20px', 'textAlign': 'center'})
     ], style={'maxWidth': '1000px', 'margin': 'auto', 'padding': '30px', 'backgroundColor': '#fff', 'boxShadow': '0 4px 15px rgba(0,0,0,0.1)'})
 ], style={'backgroundColor': '#f0f2f5', 'minHeight': '100vh', 'paddingTop': '50px'})
@@ -91,23 +91,22 @@ app.layout = html.Div([
 @app.callback(
     Output('prediction-output', 'children'),
     Input('submit-val', 'n_clicks'),
-    State({'type': 'input-field', 'index': ALL}, 'value'),
-    State({'type': 'input-field', 'index': ALL}, 'id')
+    State({'type': 'in', 'index': ALL}, 'value'),
+    State({'type': 'in', 'index': ALL}, 'id')
 )
 def update_output(n_clicks, values, ids):
     if n_clicks > 0:
-        # Create user dictionary
         user_input = {item['index']: val for item, val in zip(ids, values)}
         
         try:
-            # Path 1: XGBoost (Expects 19 features, unscaled)
-            xgb_raw = [user_input.get(f, MEANS[f]) for f in XGB_FEATURES]
-            risk_score = xgb_model.predict([xgb_raw])[0]
-            
-            # Path 2: K-Means (Expects 39 features, scaled)
-            km_raw = [user_input.get(f, MEANS[f]) for f in KMEANS_FEATURES]
-            km_scaled = scaler.transform([km_raw])
+            # 1. K-Means Path (19 features, scaled)
+            km_raw = np.array([[user_input.get(f, MEANS[f]) for f in KMEANS_FEATURES]])
+            km_scaled = scaler.transform(km_raw)
             cluster = kmeans_model.predict(km_scaled)[0]
+            
+            # 2. XGBoost Path (39 features, unscaled)
+            xgb_raw = np.array([[user_input.get(f, MEANS[f]) for f in XGB_FEATURES]])
+            risk_score = xgb_model.predict(xgb_raw)[0]
             
             risk_label = "High Risk" if risk_score == 1 else "Low Risk"
             color = "#e74c3c" if risk_score == 1 else "#27ae60"
@@ -118,7 +117,7 @@ def update_output(n_clicks, values, ids):
             ], style={'border': f'2px solid {color}', 'borderRadius': '10px', 'padding': '20px'})
             
         except Exception as e:
-            return html.Div(f"Error: {str(e)}", style={'color': 'red', 'fontWeight': 'bold'})
+            return html.Div(f"Internal processing error: {str(e)}", style={'color': 'red', 'fontWeight': 'bold'})
     
     return "Enter clinical data and click Run Analysis."
 
