@@ -27,6 +27,8 @@ kmeans_model = joblib.load(kmeans_path)
 
 app = dash.Dash(__name__)
 
+server = app.server
+
 # --- 2. Helper Functions ---
 
 def create_risk_gauge(risk_percent):
