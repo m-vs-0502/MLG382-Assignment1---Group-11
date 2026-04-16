@@ -14,14 +14,14 @@ xgb_model = joblib.load(os.path.join(base_path, 'xgboost_model.pkl'))
 kmeans_model = joblib.load(os.path.join(base_path, 'kmeans_model.pkl'))
 
 # --- 2. Configuration ---
-# The 10 features for your UI
+# 10 UI Inputs
 DASHBOARD_FEATURES = [
     'hba1c', 'glucose_fasting', 'bmi', 'waist_to_hip_ratio', 'diet_score',
     'Age', 'cholesterol_total', 'systolic_bp', 'triglycerides', 'physical_activity_minutes_per_week'
 ]
 
-# The 19 features the Scaler/KMeans expects
-KMEANS_FEATURES = [
+# XGBOOST EXPECTS 19 (Based on your subsetting logic)
+XGB_FEATURES = [
     'Age', 'alcohol_consumption_per_week', 'physical_activity_minutes_per_week', 
     'diet_score', 'sleep_hours_per_day', 'screen_time_hours_per_day', 'bmi', 
     'waist_to_hip_ratio', 'systolic_bp', 'diastolic_bp', 'heart_rate', 
@@ -29,8 +29,8 @@ KMEANS_FEATURES = [
     'glucose_fasting', 'glucose_postprandial', 'insulin_level', 'hba1c'
 ]
 
-# The 39 features XGBoost expects
-XGB_FEATURES = [
+# KMEANS EXPECTS 39 (Based on your encoding logic)
+KMEANS_FEATURES = [
     'Age', 'gender', 'alcohol_consumption_per_week', 'physical_activity_minutes_per_week', 
     'diet_score', 'sleep_hours_per_day', 'screen_time_hours_per_day', 'family_history_diabetes', 
     'hypertension_history', 'cardiovascular_history', 'bmi', 'waist_to_hip_ratio', 
@@ -44,24 +44,23 @@ XGB_FEATURES = [
     'smoking_status_Never'
 ]
 
-# Your actual dataset means for the other 29 features
 MEANS = {
-    'Age': 50.145, 'gender': 0.477, 'alcohol_consumption_per_week': 2.009, 
-    'physical_activity_minutes_per_week': 119.048, 'diet_score': 5.989, 
-    'sleep_hours_per_day': 6.995, 'screen_time_hours_per_day': 5.993, 
-    'family_history_diabetes': 0.217, 'hypertension_history': 0.251, 
-    'cardiovascular_history': 0.079, 'bmi': 25.628, 'waist_to_hip_ratio': 0.856, 
-    'systolic_bp': 115.765, 'diastolic_bp': 75.228, 'heart_rate': 69.617, 
-    'cholesterol_total': 185.982, 'hdl_cholesterol': 54.047, 'ldl_cholesterol': 102.986, 
-    'triglycerides': 121.528, 'glucose_fasting': 111.066, 'glucose_postprandial': 159.942, 
-    'insulin_level': 9.052, 'hba1c': 6.518, 'ethnicity_Black': 0.179, 
-    'ethnicity_Hispanic': 0.201, 'ethnicity_Other': 0.051, 'ethnicity_White': 0.449, 
-    'education_level_Highschool': 0.448, 'education_level_No formal': 0.050, 
-    'education_level_Postgraduate': 0.149, 'income_level_Low': 0.147, 
-    'income_level_Lower-Middle': 0.251, 'income_level_Middle': 0.352, 
-    'income_level_Upper-Middle': 0.198, 'employment_status_Retired': 0.217, 
-    'employment_status_Student': 0.061, 'employment_status_Unemployed': 0.118, 
-    'smoking_status_Former': 0.200, 'smoking_status_Never': 0.598
+    'Age': 50.14, 'gender': 0.47, 'alcohol_consumption_per_week': 2.01, 
+    'physical_activity_minutes_per_week': 119.05, 'diet_score': 5.99, 
+    'sleep_hours_per_day': 7.00, 'screen_time_hours_per_day': 5.99, 
+    'family_history_diabetes': 0.22, 'hypertension_history': 0.25, 
+    'cardiovascular_history': 0.08, 'bmi': 25.63, 'waist_to_hip_ratio': 0.86, 
+    'systolic_bp': 115.77, 'diastolic_bp': 75.23, 'heart_rate': 69.62, 
+    'cholesterol_total': 185.98, 'hdl_cholesterol': 54.05, 'ldl_cholesterol': 102.99, 
+    'triglycerides': 121.53, 'glucose_fasting': 111.07, 'glucose_postprandial': 159.94, 
+    'insulin_level': 9.05, 'hba1c': 6.52, 'ethnicity_Black': 0.18, 
+    'ethnicity_Hispanic': 0.20, 'ethnicity_Other': 0.05, 'ethnicity_White': 0.45, 
+    'education_level_Highschool': 0.45, 'education_level_No formal': 0.05, 
+    'education_level_Postgraduate': 0.15, 'income_level_Low': 0.15, 
+    'income_level_Lower-Middle': 0.25, 'income_level_Middle': 0.35, 
+    'income_level_Upper-Middle': 0.20, 'employment_status_Retired': 0.22, 
+    'employment_status_Student': 0.06, 'employment_status_Unemployed': 0.12, 
+    'smoking_status_Former': 0.20, 'smoking_status_Never': 0.60
 }
 
 # --- 3. App Setup ---
@@ -70,25 +69,24 @@ server = app.server
 
 app.layout = html.Div([
     html.Div([
-        html.H2("Health Risk Analysis", style={'textAlign': 'center', 'color': '#2c3e50'}),
+        html.H2("Diabetes Risk Diagnostic", style={'textAlign': 'center', 'color': '#2c3e50'}),
         html.Hr(),
         
-        # Grid of Input Cards
+        # Input Grid
         html.Div([
             html.Div([
                 html.Label(f.replace('_', ' ').title(), style={'fontWeight': 'bold'}),
                 dcc.Input(id={'type': 'input-field', 'index': f}, type='number', value=round(MEANS[f], 2), style={'width': '100%'})
-            ], className="four columns", style={'padding': '10px', 'border': '1px solid #eee', 'borderRadius': '5px', 'margin': '5px'}) 
+            ], className="four columns", style={'padding': '10px', 'backgroundColor': '#f9f9f9', 'borderRadius': '5px', 'margin': '5px'}) 
             for f in DASHBOARD_FEATURES
         ], className="row"),
 
         html.Br(),
-        html.Button('Run Diagnostic', id='submit-val', n_clicks=0, className="button-primary", style={'width': '100%', 'height': '50px'}),
+        html.Button('Run Analysis', id='submit-val', n_clicks=0, className="button-primary", style={'width': '100%'}),
         
-        html.Br(),
         html.Div(id='prediction-output', style={'padding': '20px', 'textAlign': 'center'})
-    ], style={'maxWidth': '900px', 'margin': 'auto', 'padding': '20px', 'backgroundColor': '#fff', 'boxShadow': '0 4px 8px 0 rgba(0,0,0,0.2)'})
-], style={'backgroundColor': '#f4f7f6', 'minHeight': '100vh', 'paddingTop': '50px'})
+    ], style={'maxWidth': '1000px', 'margin': 'auto', 'padding': '30px', 'backgroundColor': '#fff', 'boxShadow': '0 4px 15px rgba(0,0,0,0.1)'})
+], style={'backgroundColor': '#f0f2f5', 'minHeight': '100vh', 'paddingTop': '50px'})
 
 @app.callback(
     Output('prediction-output', 'children'),
@@ -98,29 +96,31 @@ app.layout = html.Div([
 )
 def update_output(n_clicks, values, ids):
     if n_clicks > 0:
-        # Map values back to their feature names
+        # Create user dictionary
         user_input = {item['index']: val for item, val in zip(ids, values)}
         
         try:
-            # 1. K-Means Path (19 features, scaled)
+            # Path 1: XGBoost (Expects 19 features, unscaled)
+            xgb_raw = [user_input.get(f, MEANS[f]) for f in XGB_FEATURES]
+            risk_score = xgb_model.predict([xgb_raw])[0]
+            
+            # Path 2: K-Means (Expects 39 features, scaled)
             km_raw = [user_input.get(f, MEANS[f]) for f in KMEANS_FEATURES]
             km_scaled = scaler.transform([km_raw])
             cluster = kmeans_model.predict(km_scaled)[0]
             
-            # 2. XGBoost Path (39 features, unscaled)
-            xgb_raw = [user_input.get(f, MEANS[f]) for f in XGB_FEATURES]
-            risk = xgb_model.predict([xgb_raw])[0]
-            
-            risk_text = "High Risk" if risk == 1 else "Low Risk"
-            
+            risk_label = "High Risk" if risk_score == 1 else "Low Risk"
+            color = "#e74c3c" if risk_score == 1 else "#27ae60"
+
             return html.Div([
-                html.H4(f"Diagnostic Result: {risk_text}", style={'color': '#e74c3c' if risk == 1 else '#27ae60'}),
-                html.P(f"Lifestyle Cluster: {cluster}", style={'fontSize': '18px', 'color': '#7f8c8d'})
-            ])
+                html.H3(f"Prediction: {risk_label}", style={'color': color}),
+                html.P(f"Assigned Lifestyle Cluster: {cluster}", style={'fontSize': '1.2em'})
+            ], style={'border': f'2px solid {color}', 'borderRadius': '10px', 'padding': '20px'})
+            
         except Exception as e:
-            return html.Div(f"Error in processing: {str(e)}", style={'color': 'red'})
+            return html.Div(f"Error: {str(e)}", style={'color': 'red', 'fontWeight': 'bold'})
     
-    return "Enter values and click Run Diagnostic."
+    return "Enter clinical data and click Run Analysis."
 
 if __name__ == '__main__':
     app.run_server(debug=True)
