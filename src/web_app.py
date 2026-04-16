@@ -6,7 +6,7 @@ from dash import html
 
 # --- 1. Efficient Path Logic ---
 # Since web_app.py is in /src, we go UP one level to find /artifacts
-base_path = '/opt/render/project/src/artifacts'
+base_path = '/opt/render/project/artifacts'
 
 # Fallback for local testing (so it doesn't break on your PC)
 if not os.path.exists(base_path):
