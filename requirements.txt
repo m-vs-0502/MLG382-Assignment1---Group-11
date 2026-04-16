@@ -1,0 +1,17 @@
+setuptools
+dash>=2.17.0
+pandas
+gunicorn
+joblib
+xgboost
+scikit-learn
+dash-bootstrap-components
+plotly
+numpy
+shap
+jupyter
+notebook
+ipykernel
+matplotlib
+seaborn
+scipy
