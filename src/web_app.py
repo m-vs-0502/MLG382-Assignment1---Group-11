@@ -3,78 +3,94 @@ import joblib
 import pandas as pd
 import numpy as np
 import dash
-from dash import dcc, html, Input, Output, State
+from dash import dcc, html, Input, Output, State, ALL
 
-# --- 1. Robust Path Resolution ---
-# Points to /project/artifacts/ while script runs in /project/src/
+# --- 1. Path Resolution ---
 current_dir = os.path.dirname(os.path.abspath(__file__))
 root_dir = os.path.dirname(current_dir)
 base_path = os.path.join(root_dir, 'artifacts')
 
-def load_artifact(filename):
-    path = os.path.join(base_path, filename)
-    if not os.path.exists(path):
-        raise FileNotFoundError(f"Missing artifact: {path}")
-    return joblib.load(path)
-
-# --- 2. Global Model Loading ---
-# We load these once at startup to stay under the 512MB RAM limit
+# --- 2. Load Artifacts ---
 try:
-    scaler = load_artifact('scaler.pkl')
-    # Use the exact filenames you confirmed are on GitHub
-    model1 = load_artifact('model1_pkl') 
-    model2 = load_artifact('model2_pkl')
-    print("All models loaded successfully.")
+    scaler = joblib.load(os.path.join(base_path, 'scaler.pkl'))
+    model1 = joblib.load(os.path.join(base_path, 'model1_pkl'))
+    model2 = joblib.load(os.path.join(base_path, 'model2_pkl'))
+    load_status = "All models loaded."
 except Exception as e:
-    print(f"Startup Error: {e}")
+    load_status = f"Load Error: {e}"
 
-# --- 3. Dash App Setup ---
+# --- 3. Feature Definitions ---
+# These MUST match the order from your scaler check
+feature_names = [
+    'Age', 'alcohol_consumption_per_week', 'physical_activity_minutes_per_week', 
+    'diet_score', 'sleep_hours_per_day', 'screen_time_hours_per_day', 'bmi', 
+    'waist_to_hip_ratio', 'systolic_bp', 'diastolic_bp', 'heart_rate', 
+    'cholesterol_total', 'hdl_cholesterol', 'ldl_cholesterol', 'triglycerides', 
+    'glucose_fasting', 'glucose_postprandial', 'insulin_level', 'hba1c'
+]
+
+# --- 4. Dash App ---
 app = dash.Dash(__name__)
-server = app.server # Required for Gunicorn
+server = app.server
 
 app.layout = html.Div([
-    html.H1("Machine Learning Model Dashboard"),
-    html.P("Enter values below to generate a prediction."),
+    html.H1("Health Prediction Dashboard"),
+    html.P(load_status, style={'color': 'gray', 'fontSize': '12px'}),
     
+    # Input Grid
     html.Div([
-        html.Label("Input Feature 1:"),
-        dcc.Input(id='input-1', type='number', value=0),
-        
-        html.Label("Input Feature 2:"),
-        dcc.Input(id='input-2', type='number', value=0),
-        
-        html.Button('Run Prediction', id='predict-btn', n_clicks=0),
-    ], style={'display': 'flex', 'flexDirection': 'column', 'width': '300px', 'gap': '10px'}),
+        html.Div([
+            html.Label(name.replace('_', ' ').title(), style={'fontSize': '14px'}),
+            dcc.Input(
+                id={'type': 'feature-input', 'index': i}, 
+                type='number', 
+                value=0,
+                style={'width': '100%'}
+            )
+        ], style={'padding': '5px'}) for i, name in enumerate(feature_names)
+    ], style={
+        'display': 'grid', 
+        'gridTemplateColumns': 'repeat(auto-fit, minmax(200px, 1fr))', 
+        'gap': '10px',
+        'marginBottom': '20px'
+    }),
+    
+    html.Button('Generate Predictions', id='predict-btn', n_clicks=0, 
+                style={'padding': '10px 20px', 'backgroundColor': '#007bff', 'color': 'white', 'border': 'none', 'borderRadius': '5px'}),
     
     html.Hr(),
-    html.Div(id='prediction-output', style={'fontSize': '20px', 'fontWeight': 'bold'})
-])
+    html.Div(id='prediction-output')
+], style={'padding': '20px', 'fontFamily': 'sans-serif'})
 
-# --- 4. Prediction Logic ---
+# --- 5. Prediction Callback ---
 @app.callback(
     Output('prediction-output', 'children'),
     Input('predict-btn', 'n_clicks'),
-    State('input-1', 'value'),
-    State('input-2', 'value')
+    State({'type': 'feature-input', 'index': ALL}, 'value')
 )
-def predict(n_clicks, val1, val2):
+def predict(n_clicks, values):
     if n_clicks == 0:
-        return "Awaiting input..."
+        return "Enter values and click predict."
     
     try:
-        # 1. Format the data for the scaler
-        raw_data = np.array([[val1, val2]])
+        # Convert to 2D array: shape (1, 19)
+        features_array = np.array([values])
         
-        # 2. Scale and Predict
-        scaled_data = scaler.transform(raw_data)
-        res1 = model1.predict(scaled_data)[0]
-        res2 = model2.predict(scaled_data)[0]
+        # Scale the data
+        scaled_features = scaler.transform(features_array)
         
-        return f"Model 1 Result: {res1:.2f} | Model 2 Result: {res2:.2f}"
+        # Get predictions
+        p1 = model1.predict(scaled_features)[0]
+        p2 = model2.predict(scaled_features)[0]
+        
+        return html.Div([
+            html.H3("Results:"),
+            html.P(f"Model 1 Prediction: {p1:.4f}"),
+            html.P(f"Model 2 Prediction: {p2:.4f}")
+        ])
     except Exception as e:
-        return f"Prediction Error: {str(e)}"
+        return html.P(f"Error: {str(e)}", style={'color': 'red'})
 
 if __name__ == '__main__':
-    # Use Render's assigned port
     port = int(os.environ.get("PORT", 10000))
     app.run_server(host='0.0.0.0', port=port)
