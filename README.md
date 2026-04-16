@@ -209,23 +209,55 @@ The application is deployed using **Render**.
 
 **File_Type:** .csv
 
-### Key Features Include:
 
-* Age
-* BMI
-* Blood Pressure
-* Glucose Level
-* Physical Activity
-* Diet Score
-* Sleep Duration
-* Smoking Status
-* Alcohol Consumption
-* Family History
-* Stress Levels
+The dataset contains demographic, lifestyle, clinical, and metabolic indicators used to predict diabetes risk and support patient segmentation.
 
-### Target Variable:
 
-* `diabetes_stage`
+### Input Features
+
+#### Demographic Features
+- Age  
+- Gender  
+- Ethnicity  
+- Education Level  
+- Income Level  
+- Employment Status  
+
+#### Lifestyle Features
+- Smoking Status  
+- Alcohol Consumption Per Week  
+- Physical Activity Minutes Per Week  
+- Diet Score  
+- Sleep Hours Per Day  
+- Screen Time Hours Per Day  
+
+#### Medical History Features
+- Family History Diabetes  
+- Hypertension History  
+- Cardiovascular History  
+
+#### Clinical / Biomarker Features
+- BMI  
+- Waist-to-Hip Ratio  
+- Systolic Blood Pressure  
+- Diastolic Blood Pressure  
+- Heart Rate  
+- Total Cholesterol  
+- HDL Cholesterol  
+- LDL Cholesterol  
+- Triglycerides  
+- Fasting Glucose  
+- Postprandial Glucose  
+- Insulin Level  
+- HbA1c  
+
+---
+
+### Target Variables
+
+- **Primary Classification Target:** `diabetes_stage`  
+- **Secondary Indicator:** `diagnosed_diabetes`  
+- **Risk Score Reference:** `diabetes_risk_score`
 
 ---
 
@@ -257,18 +289,6 @@ Developed and deployed interactive Dash web application.
 
 ---
 
----
-
-## Future Improvements
-
-* Add probability calibration for risk confidence
-* Integrate PDF patient report export
-* Enhance recommendation engine with clinical guidelines
-* Add authentication for clinician use
-* Support real-time database integration
-
----
-
 ## Academic use
 
 Academic Project – Belgium Campus ITversity
@@ -278,7 +298,7 @@ Academic Project – Belgium Campus ITversity
 ## Acknowledgements
 
 * Belgium Campus ITversity
-* BC Analytics Project Brief
+* BC Analytics Project Documentation
 * Scikit-Learn Documentation
 * XGBoost Documentation
 * SHAP Documentation
