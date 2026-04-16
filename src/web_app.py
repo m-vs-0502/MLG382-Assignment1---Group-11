@@ -1,35 +1,35 @@
 import os
+import joblib
 import dash
 from dash import html
 
-# --- DIAGNOSTIC SECTION ---
-# This will print to your Render Logs
-current_file_path = os.path.abspath(__file__)
-current_working_dir = os.getcwd()
+# --- Path Resolution ---
+# 1. Get the directory of this file (/project/src/)
+current_script_dir = os.path.dirname(os.path.abspath(__file__))
 
-print("\n" + "="*40)
-print("RENDER SYSTEM DIAGNOSTICS")
-print(f"1. Absolute path of this file: {current_file_path}")
-print(f"2. Current Working Directory: {current_working_dir}")
+# 2. Go up to the repo root (/project/)
+root_dir = os.path.dirname(current_script_dir)
 
-# List everything in the directory ABOVE 'src'
+# 3. Target the sibling artifacts folder (/project/artifacts/)
+base_path = os.path.join(root_dir, 'artifacts')
+
 try:
-    parent_dir = os.path.dirname(current_working_dir)
-    print(f"3. Contents of Parent Dir ({parent_dir}): {os.listdir(parent_dir)}")
-    
-    # List everything in the actual Root
-    # We'll try to find the 'project' folder by going up until we can't
-    print(f"4. Contents of Project Root: {os.listdir(os.path.dirname(parent_dir))}")
+    # Use the exact name you see on GitHub
+    scaler = joblib.load(os.path.join(base_path, 'scaler.pkl'))
+    status = "SUCCESS: Scaler loaded from root sibling folder."
 except Exception as e:
-    print(f"Error scanning directories: {e}")
-print("="*40 + "\n")
+    # If this fails, the error message will show us the exact path it tried
+    status = f"FAILED: {e} | Looking in: {base_path}"
 
-# --- MINIMAL APP TO KEEP RENDER HAPPY ---
+# --- Minimal App ---
 app = dash.Dash(__name__)
 server = app.server
+
 app.layout = html.Div([
-    html.H1("Diagnostic Mode Active"),
-    html.P("Check your Render Logs to see the full directory tree.")
+    html.H1("Scaler Integration Test"),
+    html.P(status, style={'fontWeight': 'bold', 'color': 'green' if "SUCCESS" in status else 'red'}),
+    html.Hr(),
+    html.Code(f"Resolved Root: {root_dir}")
 ])
 
 if __name__ == '__main__':
