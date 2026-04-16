@@ -1,31 +1,35 @@
 import os
-import joblib
-import pandas as pd # Heavy library
 import dash
 from dash import html
 
-# --- 1. Efficient Path Logic ---
-# Since web_app.py is in /src, we go UP one level to find /artifacts
-base_path = '/opt/render/project/artifacts'
+# --- DIAGNOSTIC SECTION ---
+# This will print to your Render Logs
+current_file_path = os.path.abspath(__file__)
+current_working_dir = os.getcwd()
 
-# Fallback for local testing (so it doesn't break on your PC)
-if not os.path.exists(base_path):
-    # This looks for 'artifacts' in the directory above 'src'
-    base_path = os.path.join(os.path.dirname(os.getcwd()), 'artifacts')
+print("\n" + "="*40)
+print("RENDER SYSTEM DIAGNOSTICS")
+print(f"1. Absolute path of this file: {current_file_path}")
+print(f"2. Current Working Directory: {current_working_dir}")
 
+# List everything in the directory ABOVE 'src'
 try:
-    scaler = joblib.load(os.path.join(base_path, 'scaler.pkl'))
-    status = "Scaler loaded successfully!"
+    parent_dir = os.path.dirname(current_working_dir)
+    print(f"3. Contents of Parent Dir ({parent_dir}): {os.listdir(parent_dir)}")
+    
+    # List everything in the actual Root
+    # We'll try to find the 'project' folder by going up until we can't
+    print(f"4. Contents of Project Root: {os.listdir(os.path.dirname(parent_dir))}")
 except Exception as e:
-    # This will print the actual path it tried to use in your logs
-    status = f"Error: {e} | Path attempted: {base_path}"
+    print(f"Error scanning directories: {e}")
+print("="*40 + "\n")
 
+# --- MINIMAL APP TO KEEP RENDER HAPPY ---
 app = dash.Dash(__name__)
 server = app.server
-
 app.layout = html.Div([
-    html.H1("Phase 1: Library & Scaler Test"),
-    html.P(status)
+    html.H1("Diagnostic Mode Active"),
+    html.P("Check your Render Logs to see the full directory tree.")
 ])
 
 if __name__ == '__main__':
