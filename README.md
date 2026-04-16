@@ -115,12 +115,16 @@ The Dash web application contains **5 interactive tabs**:
 MLG382-ASSIGNMENT1---GROUP-11/
 │
 ├── artifacts/
+│   ├── cluster_labels.pkl
+│   ├── Decision_tree_model.pkl
+│   ├── feature_columns.pkl
+│   ├── feature_means.pkl
 │   ├── kmeans_model.pkl
-│   ├── model_1.pkl
-│   ├── model_2.pkl
-│   ├── model_3.pkl
+│   ├── Random_forrest.pkl
 │   ├── scaler.pkl
-│   └── xgboost_model.pkl
+│   ├── target_encoder.pkl
+│   ├── xgboost_model.pkl
+│   └── xgboost_model_initial.pkl
 │
 ├── data/
 │   ├── processed/
@@ -140,8 +144,7 @@ MLG382-ASSIGNMENT1---GROUP-11/
 │   ├── 01_data_exploration.ipynb
 │   ├── cluster_modelling.ipynb
 │   ├── regression_modelling.ipynb
-│   ├── SHAP_Analysis.ipynb
-│   └── web_application.ipynb
+│   └── SHAP_Analysis.ipynb
 │
 ├── src/
 │   ├── preprocess_data.ipynb
