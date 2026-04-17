@@ -77,17 +77,18 @@ This project addresses those challenges by providing clinicians with an intellig
 ## Web Application Features
 
 ### Diabetes Risk Prediction
-  Determine likely diabetes status.
+- Determine likely diabetes status.
   
 ### Lifestyle Clustering
-  Match health metrics to cluster (Low Risk - High Risk).
+- Match health metrics to cluster (Low Risk - High Risk).
   
 ### Probability Distrobution
-  Give a percentage score for how confident the model is in its classification.
+- Give a percentage score for how confident the model is in its classification.
   
 ### Interpretation
-  Comments on Prediction results and gives advice for possible benifits.
+- Comments on Prediction results and gives advice for possible benifits.
     
+---
 
 ## Project Structure
 
