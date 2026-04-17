@@ -44,17 +44,29 @@ except Exception as e:
 # FEATURE DEFINITIONS
 # ----------------------------------------------------------------------------
 
-CLINICAL_FEATURES = [
-    'Age', 'alcohol_consumption_per_week', 'physical_activity_minutes_per_week',
-    'diet_score', 'sleep_hours_per_day', 'screen_time_hours_per_day', 'bmi',
-    'waist_to_hip_ratio', 'systolic_bp', 'diastolic_bp', 'heart_rate',
-    'cholesterol_total', 'hdl_cholesterol', 'ldl_cholesterol', 'triglycerides',
-    'glucose_fasting', 'glucose_postprandial', 'insulin_level', 'hba1c'
+# All 39 features the model expects (for autofilling)
+ALL_FEATURES = FEATURE_COLUMNS
+
+# The 8 user inputs
+USER_INPUTS = [
+    # Core metabolic (both models)
+    'hba1c',
+    'glucose_fasting',
+    
+    # K-Means drivers
+    'bmi',
+    'ldl_cholesterol',
+    
+    # XGBoost drivers
+    'Age',
+    'gender',
+    'glucose_postprandial',
+    'physical_activity_minutes_per_week'
 ]
 
 INPUT_GROUPS = [
     {
-        'title': 'Core Clinical Markers',
+        'title': 'Core Metabolic Markers',
         'fields': [
             {'id': 'hba1c', 'label': 'HbA1c (%)', 'type': 'number', 
              'min': 3.0, 'max': 15.0, 'step': 0.1, 'default': 5.7},
@@ -65,7 +77,16 @@ INPUT_GROUPS = [
         ]
     },
     {
-        'title': 'Demographics',
+        'title': 'Body & Lipid Metrics',
+        'fields': [
+            {'id': 'bmi', 'label': 'BMI', 'type': 'number',
+             'min': 15, 'max': 50, 'step': 0.1, 'default': 25},
+            {'id': 'ldl_cholesterol', 'label': 'LDL Cholesterol (mg/dL)', 'type': 'number',
+             'min': 30, 'max': 250, 'step': 1, 'default': 100},
+        ]
+    },
+    {
+        'title': 'Demographics & Lifestyle',
         'fields': [
             {'id': 'Age', 'label': 'Age (years)', 'type': 'number',
              'min': 18, 'max': 100, 'step': 1, 'default': 50},
@@ -75,35 +96,8 @@ INPUT_GROUPS = [
                  {'label': 'Female', 'value': 'Female'},
              ],
              'default': 'Female'},
-            {'id': 'family_history_diabetes', 'label': 'Family History', 'type': 'checkbox', 'default': False,
-             'checkbox_label': 'Family history of diabetes'},
-        ]
-    },
-    {
-        'title': 'Socioeconomic',
-        'fields': [
-            {'id': 'income_level', 'label': 'Income Level', 'type': 'dropdown',
-             'options': [
-                 {'label': 'Low', 'value': 'Low'},
-                 {'label': 'Middle', 'value': 'Middle'},
-                 {'label': 'Unemployed', 'value': 'Unemployed'},
-             ],
-             'default': 'Middle'},
-        ]
-    },
-    {
-        'title': 'Lifestyle',
-        'fields': [
             {'id': 'physical_activity_minutes_per_week', 'label': 'Physical Activity (min/week)', 'type': 'number',
              'min': 0, 'max': 500, 'step': 10, 'default': 150},
-            {'id': 'alcohol_consumption_per_week', 'label': 'Alcohol (drinks/week)', 'type': 'number',
-             'min': 0, 'max': 30, 'step': 1, 'default': 2},
-            {'id': 'diet_score', 'label': 'Diet Score (0-10)', 'type': 'number',
-             'min': 0, 'max': 10, 'step': 0.5, 'default': 6},
-            {'id': 'sleep_hours_per_day', 'label': 'Sleep (hours/day)', 'type': 'number',
-             'min': 3, 'max': 12, 'step': 0.5, 'default': 7},
-            {'id': 'screen_time_hours_per_day', 'label': 'Screen Time (hours/day)', 'type': 'number',
-             'min': 0, 'max': 16, 'step': 0.5, 'default': 6},
         ]
     }
 ]
@@ -112,55 +106,27 @@ VALIDATION_RULES = {
     'hba1c': {'min': 3.0, 'max': 15.0, 'message': 'HbA1c should be between 3.0% and 15.0%'},
     'glucose_fasting': {'min': 50, 'max': 400, 'message': 'Fasting glucose should be between 50-400 mg/dL'},
     'glucose_postprandial': {'min': 70, 'max': 500, 'message': 'Postprandial glucose should be between 70-500 mg/dL'},
+    'bmi': {'min': 15, 'max': 50, 'message': 'BMI should be between 15 and 50'},
+    'ldl_cholesterol': {'min': 30, 'max': 250, 'message': 'LDL cholesterol should be between 30-250 mg/dL'},
     'Age': {'min': 18, 'max': 100, 'message': 'Age should be between 18 and 100 years'},
     'physical_activity_minutes_per_week': {'min': 0, 'max': 500, 'message': 'Activity should be between 0-500 min/week'},
-    'alcohol_consumption_per_week': {'min': 0, 'max': 30, 'message': 'Alcohol should be between 0-30 drinks/week'},
-    'diet_score': {'min': 0, 'max': 10, 'message': 'Diet score should be between 0 and 10'},
-    'sleep_hours_per_day': {'min': 3, 'max': 12, 'message': 'Sleep should be between 3-12 hours/day'},
-    'screen_time_hours_per_day': {'min': 0, 'max': 16, 'message': 'Screen time should be between 0-16 hours/day'},
 }
 
 # ----------------------------------------------------------------------------
 # FEATURE CONVERSION
 # ----------------------------------------------------------------------------
 
-def income_to_features(value):
-    """Convert income dropdown to one-hot encoded features."""
-    features = {
-        'income_level_Low': 0,
-        'income_level_Lower-Middle': 0,
-        'income_level_Middle': 0,
-        'income_level_Upper-Middle': 0,
-        'employment_status_Unemployed': 0,
-    }
-    
-    if value == 'Low':
-        features['income_level_Low'] = 1
-    elif value == 'Middle':
-        features['income_level_Middle'] = 1
-    elif value == 'Unemployed':
-        features['income_level_Low'] = 1
-        features['employment_status_Unemployed'] = 1
-    
-    return features
-
-
 def prepare_input_vector(form_data):
     """Convert form data to complete 39-feature vector."""
     input_data = FEATURE_MEANS.copy()
     
     for key, value in form_data.items():
-        if key == 'income_level':
-            se_features = income_to_features(value)
-            input_data.update(se_features)
-        elif key == 'gender':
+        if key == 'gender':
             input_data['gender'] = 1 if value == 'Male' else 0
-        elif key == 'family_history_diabetes':
-            input_data['family_history_diabetes'] = 1 if value else 0
-        elif key in FEATURE_COLUMNS:
+        elif key in ALL_FEATURES:
             input_data[key] = float(value) if value is not None else FEATURE_MEANS[key]
     
-    return pd.DataFrame([input_data])[FEATURE_COLUMNS]
+    return pd.DataFrame([input_data])[ALL_FEATURES]
 
 
 def validate_inputs(form_data):
@@ -168,9 +134,12 @@ def validate_inputs(form_data):
     errors = []
     for field, rules in VALIDATION_RULES.items():
         if field in form_data and form_data[field] is not None:
-            value = float(form_data[field])
-            if value < rules['min'] or value > rules['max']:
-                errors.append(rules['message'])
+            try:
+                value = float(form_data[field])
+                if value < rules['min'] or value > rules['max']:
+                    errors.append(rules['message'])
+            except (ValueError, TypeError):
+                errors.append(f"{field} must be a valid number")
     return errors
 
 
@@ -178,9 +147,14 @@ def predict_risk(form_data):
     """Make prediction and return results."""
     input_df = prepare_input_vector(form_data)
     
+    # Scale all features (scaler was fitted on all 39 features)
     input_scaled = input_df.copy()
-    input_scaled[CLINICAL_FEATURES] = scaler.transform(input_df[CLINICAL_FEATURES])
+    input_scaled = pd.DataFrame(
+        scaler.transform(input_df),
+        columns=ALL_FEATURES
+    )
     
+    # XGBoost prediction (uses all 39 features)
     risk_class = int(xgb_model.predict(input_scaled)[0])
     risk_label = target_encoder.inverse_transform([risk_class])[0]
     proba = xgb_model.predict_proba(input_scaled)[0]
@@ -191,8 +165,8 @@ def predict_risk(form_data):
         class_probas.append((class_name, prob * 100))
     class_probas.sort(key=lambda x: x[1], reverse=True)
     
-    clinical_only = input_scaled[CLINICAL_FEATURES]
-    cluster = int(kmeans_model.predict(clinical_only)[0])
+    # K-Means clustering (uses all 39 features)
+    cluster = int(kmeans_model.predict(input_scaled)[0])
     cluster_label = CLUSTER_LABELS.get(cluster, f"Cluster {cluster}")
     
     return risk_label, cluster_label, class_probas
@@ -207,12 +181,12 @@ def get_interpretation(risk_label, cluster_label):
         return "Gestational diabetes requires careful monitoring during pregnancy. Consult your obstetrician for appropriate care."
     
     interpretations = {
-        ('No Diabetes', 'Low Risk'): "Patient shows no signs of diabetes and has healthy lifestyle indicators. Recommend maintaining current habits with regular check-ups.",
-        ('No Diabetes', 'Moderate Risk'): "No diabetes detected, but lifestyle factors suggest moderate risk. Consider increasing physical activity and monitoring diet.",
-        ('No Diabetes', 'High Risk'): "No diabetes currently, but high-risk lifestyle profile. Strongly recommend lifestyle changes and regular glucose monitoring.",
+        ('No Diabetes', 'Low Risk'): "Patient shows no signs of diabetes and has healthy metabolic and lifestyle indicators. Recommend maintaining current habits with regular check-ups.",
+        ('No Diabetes', 'Moderate Risk'): "No diabetes detected, but metabolic and lifestyle factors suggest moderate risk. Consider increasing physical activity and monitoring diet.",
+        ('No Diabetes', 'High Risk'): "No diabetes currently, but high-risk metabolic profile detected. Strongly recommend lifestyle changes and regular glucose monitoring.",
         ('Pre-Diabetes', 'Low Risk'): "Pre-diabetes detected despite healthy lifestyle. This may indicate genetic factors. Consult healthcare provider for management plan.",
         ('Pre-Diabetes', 'Moderate Risk'): "Pre-diabetes with moderate lifestyle risk. Lifestyle improvements may help prevent progression to Type 2 diabetes.",
-        ('Pre-Diabetes', 'High Risk'): "Pre-diabetes with high-risk lifestyle. Urgent lifestyle intervention recommended to prevent progression.",
+        ('Pre-Diabetes', 'High Risk'): "Pre-diabetes with high-risk metabolic profile. Urgent lifestyle intervention recommended to prevent progression.",
         ('Type 2', 'Low Risk'): "Type 2 diabetes with well-managed lifestyle factors. Continue current management and regular monitoring.",
         ('Type 2', 'Moderate Risk'): "Type 2 diabetes with room for lifestyle improvement. Focus on diet, exercise, and medication adherence.",
         ('Type 2', 'High Risk'): "Type 2 diabetes with high-risk profile. Immediate lifestyle changes and medical consultation strongly advised.",
@@ -250,16 +224,6 @@ for group in INPUT_GROUPS:
                            'border': '1px solid #ddd', 'borderRadius': '4px'}
                 )
             ]))
-        elif field['type'] == 'checkbox':
-            fields.append(html.Div([
-                html.Label(field['label'], style={'fontWeight': 'bold', 'marginTop': 10}),
-                dcc.Checklist(
-                    id=f"input-{field['id']}",
-                    options=[{'label': field['checkbox_label'], 'value': True}],
-                    value=[True] if field.get('default') else [],
-                    style={'marginBottom': '10px'}
-                )
-            ]))
         elif field['type'] == 'radio':
             fields.append(html.Div([
                 html.Label(field['label'], style={'fontWeight': 'bold', 'marginTop': 10}),
@@ -267,17 +231,6 @@ for group in INPUT_GROUPS:
                     id=f"input-{field['id']}",
                     options=field['options'],
                     value=field.get('default'),
-                    style={'marginBottom': '10px'}
-                )
-            ]))
-        elif field['type'] == 'dropdown':
-            fields.append(html.Div([
-                html.Label(field['label'], style={'fontWeight': 'bold', 'marginTop': 10}),
-                dcc.Dropdown(
-                    id=f"input-{field['id']}",
-                    options=field['options'],
-                    value=field.get('default'),
-                    clearable=False,
                     style={'marginBottom': '10px'}
                 )
             ]))
@@ -295,12 +248,12 @@ app.layout = html.Div([
            style={'textAlign': 'center', 'color': '#7f8c8d', 'marginBottom': 30}),
     
     html.Div(input_sections, style={
-        'maxWidth': '900px', 'margin': '0 auto', 'padding': '20px',
+        'maxWidth': '700px', 'margin': '0 auto', 'padding': '20px',
         'backgroundColor': '#f8f9fa', 'borderRadius': '8px'
     }),
     
     html.Div(id='validation-errors', style={
-        'maxWidth': '900px', 'margin': '10px auto', 'color': '#e74c3c'
+        'maxWidth': '700px', 'margin': '10px auto', 'color': '#e74c3c'
     }),
     
     html.Div([
@@ -312,7 +265,7 @@ app.layout = html.Div([
     ], style={'textAlign': 'center'}),
     
     html.Div(id='prediction-output', style={
-        'maxWidth': '900px', 'margin': '30px auto', 'padding': '20px',
+        'maxWidth': '700px', 'margin': '30px auto', 'padding': '20px',
         'backgroundColor': '#f8f9fa', 'borderRadius': '8px',
         'textAlign': 'center', 'fontSize': '18px'
     }),
@@ -327,16 +280,11 @@ app.layout = html.Div([
 # CALLBACK
 # ----------------------------------------------------------------------------
 
-all_input_ids = []
-for group in INPUT_GROUPS:
-    for field in group['fields']:
-        all_input_ids.append(f"input-{field['id']}")
-
 @app.callback(
     [Output('prediction-output', 'children'),
      Output('validation-errors', 'children')],
     Input('predict-button', 'n_clicks'),
-    [State(input_id, 'value') for input_id in all_input_ids]
+    [State(f"input-{feat}", 'value') for feat in USER_INPUTS]
 )
 def update_prediction(n_clicks, *values):
     if n_clicks == 0:
@@ -345,15 +293,7 @@ def update_prediction(n_clicks, *values):
                   style={'color': '#7f8c8d'})
         ]), ""
     
-    form_data = {}
-    for i, input_id in enumerate(all_input_ids):
-        field_id = input_id.replace('input-', '')
-        value = values[i]
-        
-        if field_id == 'family_history_diabetes':
-            form_data[field_id] = bool(value) if isinstance(value, list) else bool([value] if value else [])
-        else:
-            form_data[field_id] = value
+    form_data = {feat: val for feat, val in zip(USER_INPUTS, values)}
     
     errors = validate_inputs(form_data)
     if errors:
