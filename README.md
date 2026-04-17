@@ -76,35 +76,15 @@ This project addresses those challenges by providing clinicians with an intellig
 
 ## Web Application Features
 
-The Dash web application contains **5 interactive tabs**:
-
-### 1. Risk Assessment
-
-* Input patient health/lifestyle metrics
-* Predict diabetes stage
-* Display prediction confidence
-
-### 2. Patient Segments
-
-* Visualize K-Means lifestyle clusters
-* Explore cluster distributions interactively
-
-### 3. Key Drivers
-
-* Global and local SHAP explanations
-* Feature importance analysis
-
-### 4. Recommendations
-
-* Personalized health recommendations based on prediction/cluster
-
-### 5. Dashboard Overview
-
-* Dataset statistics
-* Model performance metrics
-* Risk/cluster distribution summaries
-
----
+## Diabetes Risk Prediction
+    Determine likely diabetes status.
+## Lifestyle Clustering
+    Match health metrics to cluster (Low Risk - High Risk).
+## Probability Distrobution
+    Give a percentage score for how confident the model is in its classification.
+## Interpretation
+    Comments on Prediction results and gives advice for possible benifits.
+    
 
 ## Project Structure
 
