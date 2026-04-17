@@ -42,6 +42,7 @@ USER_INPUTS = [
     'glucose_fasting',
     'bmi',
     'ldl_cholesterol',
+    'cholesterol_total',
     'Age',
     'gender',
     'glucose_postprandial',
@@ -67,6 +68,8 @@ INPUT_GROUPS = [
              'min': 15, 'max': 50, 'step': 0.1, 'default': 25},
             {'id': 'ldl_cholesterol', 'label': 'LDL Cholesterol (mg/dL)', 'type': 'number',
              'min': 30, 'max': 250, 'step': 1, 'default': 100},
+            {'id': 'cholesterol_total', 'label': 'Total Cholesterol (mg/dL)', 'type': 'number',
+             'min': 100, 'max': 350, 'step': 1, 'default': 185},
         ]
     },
     {
@@ -94,6 +97,7 @@ VALIDATION_RULES = {
     'ldl_cholesterol': {'min': 30, 'max': 250, 'message': 'LDL cholesterol should be between 30-250 mg/dL'},
     'Age': {'min': 18, 'max': 100, 'message': 'Age should be between 18 and 100 years'},
     'physical_activity_minutes_per_week': {'min': 0, 'max': 500, 'message': 'Activity should be between 0-500 min/week'},
+    'cholesterol_total': {'min': 100, 'max': 350, 'message': 'Total cholesterol should be between 100-350 mg/dL'},
 }
 
 def prepare_input_vector(form_data):
