@@ -108,10 +108,8 @@ The Dash web application contains **5 interactive tabs**:
 
 ## Project Structure
 
-```bash
-## Project Structure
 
-```bash
+~~~
 MLG382-ASSIGNMENT1---GROUP-11/
 │
 ├── artifacts/
