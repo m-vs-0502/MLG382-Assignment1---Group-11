@@ -30,6 +30,12 @@ try:
     with open(os.path.join(ARTIFACTS_DIR, 'cluster_labels.pkl'), 'rb') as f:
         CLUSTER_LABELS = pickle.load(f)
     
+    with open(os.path.join(ARTIFACTS_DIR, 'cluster_means.pkl'), 'rb') as f:
+        CLUSTER_MEANS = pickle.load(f)
+    
+    print(f"Loaded {len(FEATURE_COLUMNS)} features")
+    print("All artifacts loaded successfully!")
+    
     print(f"Loaded {len(FEATURE_COLUMNS)} features")
     print("All artifacts loaded successfully!")
 
@@ -40,12 +46,12 @@ except Exception as e:
 USER_INPUTS = [
     'hba1c',
     'glucose_fasting',
+    'glucose_postprandial',
     'bmi',
     'ldl_cholesterol',
     'cholesterol_total',
     'Age',
     'gender',
-    'glucose_postprandial',
     'physical_activity_minutes_per_week'
 ]
 
@@ -99,21 +105,14 @@ VALIDATION_RULES = {
     'physical_activity_minutes_per_week': {'min': 0, 'max': 500, 'message': 'Activity should be between 0-500 min/week'},
     'cholesterol_total': {'min': 100, 'max': 350, 'message': 'Total cholesterol should be between 100-350 mg/dL'},
 }
-def predict_risk(form_data):
-    input_df = prepare_input_vector(form_data)
+
+def prepare_input_vector(form_data, cluster=None):
+    if cluster is not None and cluster in CLUSTER_MEANS:
+        input_data = CLUSTER_MEANS[cluster].copy()
+    else:
+        input_data = FEATURE_MEANS.copy()
     
-    print("DEBUG - User inputs received:", form_data)
-    print("DEBUG - HbA1c in input_df:", input_df['hba1c'].values[0])
-    print("DEBUG - BMI in input_df:", input_df['bmi'].values[0])
-    
-    input_scaled = scaler.transform(input_df)
-    input_scaled = pd.DataFrame(input_scaled, columns=FEATURE_COLUMNS)
-    
-    cluster = int(kmeans_model.predict(input_scaled)[0])
-    print("DEBUG - Predicted cluster:", cluster)
-    
-def prepare_input_vector(form_data):
-    input_data = FEATURE_MEANS.copy()
+    print("DEBUG - Before user inputs, HbA1c:", input_data.get('hba1c'))
     
     for key, value in form_data.items():
         if key == 'gender':
@@ -123,13 +122,45 @@ def prepare_input_vector(form_data):
                 try:
                     input_data[key] = float(value)
                 except (ValueError, TypeError):
-                    input_data[key] = FEATURE_MEANS[key]
-            else:
-                input_data[key] = FEATURE_MEANS[key]
+                    pass
+    
+    print("DEBUG - After user inputs, HbA1c:", input_data.get('hba1c'))
+    print("DEBUG - After user inputs, Glucose:", input_data.get('glucose_fasting'))
     
     df = pd.DataFrame([input_data])
     df = df[FEATURE_COLUMNS]
     return df
+
+def predict_risk(form_data):
+    input_df = prepare_input_vector(form_data)
+    input_scaled = pd.DataFrame(scaler.transform(input_df), columns=FEATURE_COLUMNS)
+    
+    cluster = int(kmeans_model.predict(input_scaled)[0])
+    
+    input_df_refined = prepare_input_vector(form_data, cluster=cluster)
+    
+    print("DEBUG - DataFrame HbA1c:", input_df_refined['hba1c'].values[0])
+    print("DEBUG - DataFrame Glucose:", input_df_refined['glucose_fasting'].values[0])
+    print("DEBUG - DataFrame shape:", input_df_refined.shape)
+    print("DEBUG - DataFrame columns first 5:", list(input_df_refined.columns[:5]))
+    
+    risk_class = int(xgb_model.predict(input_df_refined)[0])
+    proba = xgb_model.predict_proba(input_df_refined)[0]
+    
+    print("DEBUG - Predicted class:", risk_class)
+    print("DEBUG - Probabilities:", proba)
+    
+    risk_label = target_encoder.inverse_transform([risk_class])[0]
+    
+    class_probas = []
+    for i, prob in enumerate(proba):
+        class_name = target_encoder.inverse_transform([i])[0]
+        class_probas.append((class_name, prob * 100))
+    class_probas.sort(key=lambda x: x[1], reverse=True)
+    
+    cluster_label = CLUSTER_LABELS.get(cluster, f"Cluster {cluster}")
+    
+    return risk_label, cluster_label, class_probas
 
 def validate_inputs(form_data):
     errors = []
@@ -143,26 +174,7 @@ def validate_inputs(form_data):
                 errors.append(f"{field} must be a valid number")
     return errors
 
-def predict_risk(form_data):
-    input_df = prepare_input_vector(form_data)
-    
-    input_scaled = scaler.transform(input_df)
-    input_scaled = pd.DataFrame(input_scaled, columns=FEATURE_COLUMNS)
-    
-    risk_class = int(xgb_model.predict(input_scaled)[0])
-    risk_label = target_encoder.inverse_transform([risk_class])[0]
-    proba = xgb_model.predict_proba(input_scaled)[0]
-    
-    class_probas = []
-    for i, prob in enumerate(proba):
-        class_name = target_encoder.inverse_transform([i])[0]
-        class_probas.append((class_name, prob * 100))
-    class_probas.sort(key=lambda x: x[1], reverse=True)
-    
-    cluster = int(kmeans_model.predict(input_scaled)[0])
-    cluster_label = CLUSTER_LABELS.get(cluster, f"Cluster {cluster}")
-    
-    return risk_label, cluster_label, class_probas
+
 
 def get_interpretation(risk_label, cluster_label):
     if risk_label == 'Type 1':
@@ -359,4 +371,4 @@ def update_prediction(n_clicks, *values):
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 10000))
-    app.run_server(host='0.0.0.0', port=port, debug=False)
+    app.run(host='0.0.0.0', port=port, debug=False)
