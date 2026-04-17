@@ -277,6 +277,10 @@ def update_prediction(n_clicks, *values):
     
     form_data = {feat: val for feat, val in zip(USER_INPUTS, values)}
     
+    print("DEBUG - Raw values from form:", values)
+    print("DEBUG - Form data dict:", form_data)
+    print("DEBUG - HbA1c value:", form_data.get('hba1c'))
+    
     errors = validate_inputs(form_data)
     if errors:
         error_div = html.Div([html.P(f"⚠ {err}", style={'margin': '5px 0'}) for err in errors])
@@ -284,6 +288,7 @@ def update_prediction(n_clicks, *values):
     
     try:
         risk_label, cluster_label, class_probas = predict_risk(form_data)
+        print("DEBUG - Risk label returned:", risk_label)
         
         risk_colors = {
             'No Diabetes': '#27ae60',
@@ -346,6 +351,7 @@ def update_prediction(n_clicks, *values):
         ]), ""
         
     except Exception as e:
+        print("DEBUG - Exception:", e)
         return html.Div([
             html.P("Error making prediction", style={'color': '#e74c3c'}),
             html.P(str(e), style={'color': '#e74c3c', 'fontSize': '14px'})
