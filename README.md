@@ -183,7 +183,7 @@ https://diabetes-diagnosis-ml-group-11.onrender.com/
 
 ### Technical Report (ondrive link)
 
-https://belgiumcampusacza-my.sharepoint.com/:b:/g/personal/601847_student_belgiumcampus_ac_za/IQDh3oZuLAcUQ4jGZe99y1b0AbdfO75QULGKU9kxWpGTVjw?e=XZ3fBE 
+https://belgiumcampusacza-my.sharepoint.com/:b:/g/personal/601847_student_belgiumcampus_ac_za/IQBO6UEj9nfySqEy2IwEuChGAduX01TBfSv5DQHFIiGg5wQ?e=HhOQ4U
 
 
 ---
