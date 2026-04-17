@@ -89,7 +89,7 @@ This project addresses those challenges by providing clinicians with an intellig
 ## Project Structure
 
 
-~~~
+```
 MLG382-ASSIGNMENT1---GROUP-11/
 │
 ├── artifacts/
@@ -171,7 +171,7 @@ python app/app.py
 The application is deployed using **Render**.
 
 **Live Web App:**
-[Insert Deployment Link Here]
+https://diabetes-diagnosis-ml-group-11.onrender.com/ 
 
 ---
 
@@ -179,7 +179,7 @@ The application is deployed using **Render**.
 
 ### Technical Report (ondrive link)
 
-[Insert Technical Report Link]
+https://belgiumcampusacza-my.sharepoint.com/:b:/g/personal/601847_student_belgiumcampus_ac_za/IQDh3oZuLAcUQ4jGZe99y1b0AbdfO75QULGKU9kxWpGTVjw?e=XZ3fBE 
 
 
 ---
