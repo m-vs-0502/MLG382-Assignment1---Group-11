@@ -99,7 +99,19 @@ VALIDATION_RULES = {
     'physical_activity_minutes_per_week': {'min': 0, 'max': 500, 'message': 'Activity should be between 0-500 min/week'},
     'cholesterol_total': {'min': 100, 'max': 350, 'message': 'Total cholesterol should be between 100-350 mg/dL'},
 }
-
+def predict_risk(form_data):
+    input_df = prepare_input_vector(form_data)
+    
+    print("DEBUG - User inputs received:", form_data)
+    print("DEBUG - HbA1c in input_df:", input_df['hba1c'].values[0])
+    print("DEBUG - BMI in input_df:", input_df['bmi'].values[0])
+    
+    input_scaled = scaler.transform(input_df)
+    input_scaled = pd.DataFrame(input_scaled, columns=FEATURE_COLUMNS)
+    
+    cluster = int(kmeans_model.predict(input_scaled)[0])
+    print("DEBUG - Predicted cluster:", cluster)
+    
 def prepare_input_vector(form_data):
     input_data = FEATURE_MEANS.copy()
     
@@ -107,7 +119,13 @@ def prepare_input_vector(form_data):
         if key == 'gender':
             input_data['gender'] = 1 if value == 'Male' else 0
         elif key in FEATURE_COLUMNS:
-            input_data[key] = float(value) if value is not None else FEATURE_MEANS[key]
+            if value is not None:
+                try:
+                    input_data[key] = float(value)
+                except (ValueError, TypeError):
+                    input_data[key] = FEATURE_MEANS[key]
+            else:
+                input_data[key] = FEATURE_MEANS[key]
     
     df = pd.DataFrame([input_data])
     df = df[FEATURE_COLUMNS]
