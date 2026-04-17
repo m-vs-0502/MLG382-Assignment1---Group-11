@@ -6,10 +6,6 @@ import numpy as np
 import joblib
 import pickle
 
-# ----------------------------------------------------------------------------
-# LOAD ARTIFACTS
-# ----------------------------------------------------------------------------
-
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ARTIFACTS_DIR = os.path.join(BASE_DIR, 'artifacts')
 
@@ -34,30 +30,18 @@ try:
     with open(os.path.join(ARTIFACTS_DIR, 'cluster_labels.pkl'), 'rb') as f:
         CLUSTER_LABELS = pickle.load(f)
     
+    print(f"Loaded {len(FEATURE_COLUMNS)} features")
     print("All artifacts loaded successfully!")
 
 except Exception as e:
     print(f"Error loading artifacts: {e}")
     raise
 
-# ----------------------------------------------------------------------------
-# FEATURE DEFINITIONS
-# ----------------------------------------------------------------------------
-
-# All 39 features the model expects (for autofilling)
-ALL_FEATURES = FEATURE_COLUMNS
-
-# The 8 user inputs
 USER_INPUTS = [
-    # Core metabolic (both models)
     'hba1c',
     'glucose_fasting',
-    
-    # K-Means drivers
     'bmi',
     'ldl_cholesterol',
-    
-    # XGBoost drivers
     'Age',
     'gender',
     'glucose_postprandial',
@@ -112,25 +96,20 @@ VALIDATION_RULES = {
     'physical_activity_minutes_per_week': {'min': 0, 'max': 500, 'message': 'Activity should be between 0-500 min/week'},
 }
 
-# ----------------------------------------------------------------------------
-# FEATURE CONVERSION
-# ----------------------------------------------------------------------------
-
 def prepare_input_vector(form_data):
-    """Convert form data to complete 39-feature vector."""
     input_data = FEATURE_MEANS.copy()
     
     for key, value in form_data.items():
         if key == 'gender':
             input_data['gender'] = 1 if value == 'Male' else 0
-        elif key in ALL_FEATURES:
+        elif key in FEATURE_COLUMNS:
             input_data[key] = float(value) if value is not None else FEATURE_MEANS[key]
     
-    return pd.DataFrame([input_data])[ALL_FEATURES]
-
+    df = pd.DataFrame([input_data])
+    df = df[FEATURE_COLUMNS]
+    return df
 
 def validate_inputs(form_data):
-    """Validate all numeric inputs."""
     errors = []
     for field, rules in VALIDATION_RULES.items():
         if field in form_data and form_data[field] is not None:
@@ -142,19 +121,12 @@ def validate_inputs(form_data):
                 errors.append(f"{field} must be a valid number")
     return errors
 
-
 def predict_risk(form_data):
-    """Make prediction and return results."""
     input_df = prepare_input_vector(form_data)
     
-    # Scale all features (scaler was fitted on all 39 features)
-    input_scaled = input_df.copy()
-    input_scaled = pd.DataFrame(
-        scaler.transform(input_df),
-        columns=ALL_FEATURES
-    )
+    input_scaled = scaler.transform(input_df)
+    input_scaled = pd.DataFrame(input_scaled, columns=FEATURE_COLUMNS)
     
-    # XGBoost prediction (uses all 39 features)
     risk_class = int(xgb_model.predict(input_scaled)[0])
     risk_label = target_encoder.inverse_transform([risk_class])[0]
     proba = xgb_model.predict_proba(input_scaled)[0]
@@ -165,15 +137,12 @@ def predict_risk(form_data):
         class_probas.append((class_name, prob * 100))
     class_probas.sort(key=lambda x: x[1], reverse=True)
     
-    # K-Means clustering (uses all 39 features)
     cluster = int(kmeans_model.predict(input_scaled)[0])
     cluster_label = CLUSTER_LABELS.get(cluster, f"Cluster {cluster}")
     
     return risk_label, cluster_label, class_probas
 
-
 def get_interpretation(risk_label, cluster_label):
-    """Generate human-readable interpretation."""
     if risk_label == 'Type 1':
         return "Type 1 diabetes is an autoimmune condition requiring insulin therapy. Consult an endocrinologist for proper management."
     
@@ -197,11 +166,6 @@ def get_interpretation(risk_label, cluster_label):
         return interpretations[key]
     
     return f"Based on the model, this patient is classified as '{risk_label}' with a '{cluster_label}' lifestyle profile. Clinical correlation is recommended."
-
-
-# ----------------------------------------------------------------------------
-# DASH APP LAYOUT
-# ----------------------------------------------------------------------------
 
 app = dash.Dash(__name__)
 server = app.server
@@ -275,10 +239,6 @@ app.layout = html.Div([
                style={'color': '#95a5a6', 'fontSize': '12px', 'marginTop': 50})
     ], style={'textAlign': 'center'})
 ])
-
-# ----------------------------------------------------------------------------
-# CALLBACK
-# ----------------------------------------------------------------------------
 
 @app.callback(
     [Output('prediction-output', 'children'),
@@ -368,11 +328,6 @@ def update_prediction(n_clicks, *values):
             html.P("Error making prediction", style={'color': '#e74c3c'}),
             html.P(str(e), style={'color': '#e74c3c', 'fontSize': '14px'})
         ]), ""
-
-
-# ----------------------------------------------------------------------------
-# RUN APP
-# ----------------------------------------------------------------------------
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 10000))
