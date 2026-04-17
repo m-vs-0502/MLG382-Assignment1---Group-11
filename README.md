@@ -82,7 +82,7 @@ This project addresses those challenges by providing clinicians with an intellig
 ### Lifestyle Clustering
 - Match health metrics to cluster (Low Risk - High Risk).
   
-### Probability Distrobution
+### Probability Distribution
 - Give a percentage score for how confident the model is in its classification.
   
 ### Interpretation
